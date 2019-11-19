@@ -369,10 +369,10 @@ image.imsave(path_dic_result+'hair_new_seg.png',input)
 
 ###################################################
 #cal hair seg
-#reader = vtk.vtkUnstructuredGridReader()
+reader = vtk.vtkUnstructuredGridReader()
 
 
-reader=vtk.vtkPolyDataReader()
+#reader=vtk.vtkPolyDataReader()
 reader.SetFileName(path_dic_result+'hair.vtk')
 reader.Update()
 output = reader.GetOutput()
@@ -390,6 +390,9 @@ for i in range(output.GetNumberOfCells()):
     cell=output.GetCell(i)
     hair_cell[i,0:3]=[cell.GetPointId(0),cell.GetPointId(1),cell.GetPointId(2)]
 print(hair_cell[0:22,:])
+
+
+np.savez(path_dic_result+'hair',a=hair_vertex,b=hair_cell)
 
 #code the transform
 ss_2=1.4e-06
@@ -409,12 +412,17 @@ hair_vertex_t=hair_vertex.transpose()
 hair_3d=ss_3*np.matmul(RR_3,hair_vertex_t[None,:])
 hair_3d=hair_3d.reshape((3,-1))
 
+ssRR_3=ss_3*RR_3
+np.savetxt(path_dic_result+'hair_sR.txt',ssRR_3)
+
 hair_2d=np.matmul(help_1,hair_vertex_t[None,:])
 hair_2d=hair_2d.reshape((2,-1))
 hair_2d=hair_2d+tt_3
 
 ############
 x_translate_3d_hair=x_translate_3d-ss_3*np.matmul(RR_3,tt_2)
+np.savetxt(path_dic_result+'hair_translate.txt',x_translate_3d_hair)
+
 #x_translate_3d_hair=x_translate_3d_hair.transpose()
 print("x_translate_3d_hair.shape",x_translate_3d_hair.shape)
 global hair_3d_tra

@@ -9,8 +9,8 @@ from numpy.linalg import solve
 lambda_normal=10
 lambda_warping=1000
 incre_s=20
-sample_hair=100  #100#200
-sample_image=1080 #1080#1000#530#2000+#530
+sample_hair=50  #100#200
+sample_image=530 #1080#1000#530#2000+#530
 
 path_dic_result="./data_0/"
 scale=4
@@ -80,6 +80,8 @@ cont_hair=cont_hair.reshape(-1,2)
 
 for i in range(cont_hair.shape[0]):
     input_model_blur[cont_hair[i,1],cont_hair[i,0]]=[0,0,255]
+
+print("tttttt")
 cv2.imshow("img",input_model_blur)
 cv2.waitKey(0)
 cont_image=cont_image.reshape(-1,2)
@@ -375,7 +377,7 @@ for j in range(1,sample_hair):
         min_now=-1
         index_k=-1
         for k in range(sample_image):
-            A_here=np.square(A1[j]-A2[k,i])
+            A_here=np.square(A1[j]-A3[k,i])
             help=T1[k,j-1]+A_here+B[i,j]
             if(index_k==-1 or help<min_now):
                 min_now=help
@@ -538,5 +540,55 @@ cv2.waitKey(0)
 
 cv2.imshow("img",test_correspondence)
 cv2.waitKey(0)
+
+
+########################################################
+data = np.load(path_dic_result+'hair.npz')
+hair_vertex=data['a']
+print(hair_vertex.shape)
+hair_cell=data['b']
+print(hair_cell.shape)
+data.close()
+
+hair_vertex_t=hair_vertex.transpose()
+ssRR_3=np.loadtxt(path_dic_result+'hair_sR.txt')
+ssRR_3_inverse=np.linalg.inv(ssRR_3)
+
+print("ssRR_3",ssRR_3)
+hair_3d=np.matmul(ssRR_3,hair_vertex_t[None,:])
+hair_3d=hair_3d.reshape((3,-1))
+
+x_translate_3d_hair=np.loadtxt(path_dic_result+'hair_translate.txt')
+x_translate_3d_hair.resize(3,1)
+print("x_translate_3d_hair",x_translate_3d_hair)
+hair_3d_tra=hair_3d+x_translate_3d_hair
+
+hair_3d_tra_new=hair_3d_tra.copy()
+for i in range(hair_3d_tra.shape[1]):
+    p_ori=np.array([hair_3d_tra[0,i],hair_3d_tra[1,i]])
+    a,b=get_warping_point(p_ori,p_h_ori_sample,w_0,w_1)
+    hair_3d_tra_new[0,i]=a
+    hair_3d_tra_new[1,i]=b
+
+hair_3d_tra_new=hair_3d_tra_new-x_translate_3d_hair
+hair_3d_new=np.matmul(ssRR_3_inverse,hair_3d_tra_new[None,:])
+hair_3d_new=hair_3d_new.reshape((3,-1))
+print(hair_3d_new.shape)
+f = open(path_dic_result+"hair_deform.vtk",'w')
+f.write('# vtk DataFile Version 2.0\n')
+f.write('point\n')
+f.write('ASCII\n')
+f.write('DATASET UNSTRUCTURED_GRID\n')
+f.write('POINTS '+str(hair_3d_new.shape[1])+' double\n')
+for i in range(hair_3d_new.shape[1]):
+    f.write(str(hair_3d_new[0,i])+" "+str(hair_3d_new[1,i])+" "+str(hair_3d_new[2,i])+"\n")
+f.write("CELLS "+str(hair_cell.shape[0])+" "+str(hair_cell.shape[0]*4)+"\n")
+for i in range(hair_cell.shape[0]):
+    f.write("3 "+str(hair_cell[i,0])+" "+str(hair_cell[i,1])+" "+str(hair_cell[i,2])+"\n")
+f.write("CELL_TYPES "+str(hair_cell.shape[0])+"\n")
+for i in range(hair_cell.shape[0]):
+    f.write("5\n")
+f.close()
+
 
 
